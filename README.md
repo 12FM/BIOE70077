@@ -1,8 +1,8 @@
-# 复现论文图3：Deep Reinforcement Learning with Double Q-learning
+# 复现论文：Deep Reinforcement Learning with Double Q-learning
 
 > **论文**：[Deep Reinforcement Learning with Double Q-learning](https://arxiv.org/abs/1509.06461)
 >
-> **图3内容**：DQN（橙色）与 Double DQN（蓝色）在6款Atari游戏上的对比
+> **图内容**：DQN（橙色）与 Double DQN（蓝色）在Atari游戏上的对比
 
 ---
 
@@ -12,8 +12,8 @@
 2. [依赖安装](#2-依赖安装)
 3. [Atari ROMs 配置](#3-atari-roms-配置)
 4. [GPU 支持配置](#4-gpu-支持配置)
-5. [复现图3实验](#5-复现图3实验)
-6. [生成图3](#6-生成图3)
+5. [复现图实验](#5-复现图实验)
+6. [生成图](#6-生成图)
 7. [常见问题](#7-常见问题)
 
 ---
@@ -82,11 +82,11 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/root/miniconda3/envs/deep/lib/python3.8
 
 ---
 
-## 5. 复现图3实验
+## 5. 复现图实验
 
-> 🎯 **目标**：在6款游戏上分别训练 DQN 和 Double DQN，复现论文图3
+> 🎯 **目标**：在6款游戏上分别训练 DQN 和 Double DQN，复现论文
 >
-> **图3展示的内容**：
+> **图展示的内容**：
 > - 顶部两行：价值估计（Average Q value）对比
 > - 底部一行：实际游戏得分对比
 > - 橙色 = DQN，蓝色 = Double DQN
@@ -193,9 +193,9 @@ python main.py --env AsterixNoFrameskip-v4 --algorithm ddqn --train --log_interv
 
 ---
 
-## 6. 生成图3
+## 6. 生成图
 
-> 🎯 **目标**：训练完成后，生成论文图3的复现图
+> 🎯 **目标**：训练完成后，生成论文的复现图
 
 ### 步骤 6.1：查看 TensorBoard（实时监控）
 
@@ -205,7 +205,7 @@ tensorboard --logdir=./log/ --host 0.0.0.0 --port 6006
 
 访问：http://localhost:6006/
 
-### 步骤 6.2：生成图3
+### 步骤 6.2：生成图
 
 ```bash
 python plot_figure3.py
@@ -240,4 +240,4 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/root/miniconda3/envs/deep/lib/python3.8
 - 项目文件：
   - `main.py` - 训练入口，支持 `--algorithm dqn/ddqn`
   - `reproduce_figure3.sh` - 一键复现脚本
-  - `plot_figure3.py` - 绘制图3
+  - `plot_figure3.py` - 绘制图
