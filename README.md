@@ -1,148 +1,243 @@
-# Deep Reinforcement Learning with Double Q-learning
+# 复现论文图3：Deep Reinforcement Learning with Double Q-learning
 
-![atlantis_playing](/assets/atlantis.gif)
+> **论文**：[Deep Reinforcement Learning with Double Q-learning](https://arxiv.org/abs/1509.06461)
+>
+> **图3内容**：DQN（橙色）与 Double DQN（蓝色）在6款Atari游戏上的对比
 
-This repository implements the paper: **[Deep Reinforcement Learning with Double Q-learning](https://arxiv.org/abs/1509.06461)**.
+---
 
-The authors of the paper applied [Double Q-learning](https://papers.nips.cc/paper/3964-double-q-learning) concept on their DQN algorithm. This paper proposed Double DQN, which is similar to DQN but more robust to overestimation of Q-values.
+## 📋 目录
 
-The major difference between those two algorithms is the way to calculate Q-value from target network. Compared to the DQN, directly using Q-value from target network, DDQN chooses an action that maximizes the Q-value of main network at the next state.
+1. [环境准备](#1-环境准备)
+2. [依赖安装](#2-依赖安装)
+3. [Atari ROMs 配置](#3-atari-roms-配置)
+4. [GPU 支持配置](#4-gpu-支持配置)
+5. [复现图3实验](#5-复现图3实验)
+6. [生成图3](#6-生成图3)
+7. [常见问题](#7-常见问题)
 
-#### DQN
-![dqn_y_target](/assets/y_dqn.png)
+---
 
-#### DDQN
-![ddqn_y_target](/assets/y_ddqn.png)
+## 1. 环境准备
 
-Most of the implementation is almost the same as the [implementation of DQN](https://github.com/jihoonerd/Human-level-control-through-deep-reinforcement-learning).
-
-## Features
-
-* Employed ***TensorFlow 2*** with performance optimization
-* Simple structure
-* Easy to reproduce
-
-## Model Structure
-
-![nn.svg](/assets/nn.svg)
-
-## Requirements
-
-***Default running environment is assumed to be CPU-ONLY. If you want to run this repo on GPU machine, just replace `tensorflow` to `tensorflow-gpu` in package lists.***
-
-## How to install
-
-### `virtualenv`
+> 🎯 **目标**：创建 Python 3.8 虚拟环境
 
 ```bash
-$ virtualenv venv
-$ source venv/bin/activate
-$ pip install -r requirements.txt
+# 步骤 1.1：创建环境
+conda create -n deep python=3.8 -y
+
+# 步骤 1.2：激活环境
+conda activate deep
 ```
 
-## How to run
+✅ **验证**：命令行前缀显示 `(deep)`
 
-You can run Atari 2600 game with `main.py`. Running environment needs to be `NoFrameskip` from `gym` package.
+---
+
+## 2. 依赖安装
+
+> 🎯 **目标**：安装训练所需的 Python 包
 
 ```bash
-$ python main.py --help
-usage: main.py [-h] [--env ENV] [--train] [--play PLAY]
-               [--log_interval LOG_INTERVAL]
-               [--save_weight_interval SAVE_WEIGHT_INTERVAL]
+# 步骤 2.1：安装 gym
+pip install gym==0.15.3 -i https://pypi.tuna.tsinghua.edu.cn/simple
 
-Atari: DQN
-optional arguments:
-  -h, --help            show this help message and exit
-  --env ENV             Should be NoFrameskip environment
-  --train               Train agent with given environment
-  --play PLAY           Play with a given weight directory
-  --log_interval LOG_INTERVAL
-                        Interval of logging stdout
-  --save_weight_interval SAVE_WEIGHT_INTERVAL
-                        Interval of saving weights
+# 步骤 2.2：安装主要依赖
+pip install imageio tensorflow numpy opencv-python matplotlib atari-py -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+# 步骤 2.3：安装 logger
+pip install logger -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
-### Example 1: Train BreakoutNoFrameskip-v4
+---
 
-``` bash
-$ python main.py --env BreakoutNoFrameskip-v4 --train
-```
+## 3. Atari ROMs 配置
 
-### Example 2: Play PongNoFrameskip-v4 with trained weights
+> 🎯 **目标**：下载游戏 ROM 文件
 
 ```bash
-$ python main.py --env PongNoFrameskip-v4 --play ./log/[LOGDIR]/weights
+# 步骤 3.1：安装 AutoROM
+pip install autorom[accept-rom-license] -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+# 步骤 3.2：下载 ROMs
+AutoROM --accept-license
+
+# 步骤 3.3：导入 ROMs
+python -m atari_py.import_roms /root/miniconda3/envs/deep/lib/python3.8/site-packages/AutoROM/roms
 ```
 
-### Example 3: Control log & save interval
+---
+
+## 4. GPU 支持配置
+
+> 🎯 **目标**：配置 cuDNN 启用 GPU 加速
 
 ```bash
-$ python main.py --env BreakoutNoFrameskip-v4 --train --log_interval 100 --save_weight_interval 1000
+# 步骤 4.1：安装 cuDNN
+pip install nvidia-cudnn-cu11==8.6.0.163 -i https://pypi.tuna.tsinghua.edu.cn/simple
+
+# 步骤 4.2：设置环境变量（每次运行前执行）
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/root/miniconda3/envs/deep/lib/python3.8/site-packages/nvidia/cudnn/lib:/root/miniconda3/envs/deep/lib/python3.8/site-packages/nvidia/cublas/lib
 ```
 
-## Results
+---
 
-This implementation is guaranteed to work well for `Atlantis`, `Boxing`, `Breakout` and `Pong`. Tensorboard summary is located at `./archive`. Tensorboard will show following information:
+## 5. 复现图3实验
 
-* Average Q value
-* Epsilon (for exploration)
-* Latest 100 avg reward (clipped)
-* Loss
-* Reward (clipped)
-* Test score
-* Total frames
+> 🎯 **目标**：在6款游戏上分别训练 DQN 和 Double DQN，复现论文图3
+>
+> **图3展示的内容**：
+> - 顶部两行：价值估计（Average Q value）对比
+> - 底部一行：实际游戏得分对比
+> - 橙色 = DQN，蓝色 = Double DQN
+
+### 📊 实验游戏列表（共6个）
+
+| 游戏 | 环境名称 |
+|------|----------|
+| Alien | `AlienNoFrameskip-v4` |
+| Space Invaders | `SpaceInvadersNoFrameskip-v4` |
+| Time Pilot | `TimePilotNoFrameskip-v4` |
+| Zaxxon | `ZaxxonNoFrameskip-v4` |
+| Wizard of Wor | `WizardOfWorNoFrameskip-v4` |
+| Asterix | `AsterixNoFrameskip-v4` |
+
+---
+
+### 方法一：一键运行全部实验（推荐）
 
 ```bash
-$ tensorboard --logdir=./archive/
+cd /root/Deep
+
+# 后台运行全部实验（6游戏 × 2算法 = 12个实验）
+nohup ./reproduce_figure3.sh > figure3_training.log 2>&1 &
+
+# 查看训练进度
+tail -f figure3_training.log
 ```
 
-Single RTX 2080 Ti is used for the results below. (Thanks to [@JKeun](https://github.com/JKeun) for allowing his computation resources)
+---
 
-### Atalntis
+### 方法二：逐个运行实验
 
-* Orange: DQN
-* Blue: DDQN
+#### 步骤 5.1：训练 Alien
 
-#### Reward
+```bash
+cd /root/Deep
 
-![atlantis](/assets/atlantis_result.png)
+# DQN
+python main.py --env AlienNoFrameskip-v4 --algorithm dqn --train --log_interval 100 --save_weight_interval 1000
 
-#### Q-value
-
-![atlantis_Q](/assets/DDQN_Q-value.png)
-
-We can see that DDQN's average Q-value is suppressed compared to that of DQN.
-
-## BibTeX
-
-```
-@article{hasselt2015doubledqn,
-  abstract = {The popular Q-learning algorithm is known to overestimate action values under
-certain conditions. It was not previously known whether, in practice, such
-overestimations are common, whether they harm performance, and whether they can
-generally be prevented. In this paper, we answer all these questions
-affirmatively. In particular, we first show that the recent DQN algorithm,
-which combines Q-learning with a deep neural network, suffers from substantial
-overestimations in some games in the Atari 2600 domain. We then show that the
-idea behind the Double Q-learning algorithm, which was introduced in a tabular
-setting, can be generalized to work with large-scale function approximation. We
-propose a specific adaptation to the DQN algorithm and show that the resulting
-algorithm not only reduces the observed overestimations, as hypothesized, but
-that this also leads to much better performance on several games.},
-  added-at = {2019-11-18T11:40:13.000+0100},
-  author = {van Hasselt, Hado and Guez, Arthur and Silver, David},
-  biburl = {https://www.bibsonomy.org/bibtex/2c2bad4b4c5a34cb31a3f569c71e851ab/jan.hofmann1},
-  description = {[1509.06461] Deep Reinforcement Learning with Double Q-learning},
-  interhash = {d3061c37961afb78096e314854dd90bc},
-  intrahash = {c2bad4b4c5a34cb31a3f569c71e851ab},
-  keywords = {dqn q-learning reinforcement_learning},
-  note = {cite arxiv:1509.06461Comment: AAAI 2016},
-  timestamp = {2019-11-18T11:40:13.000+0100},
-  title = {Deep Reinforcement Learning with Double Q-learning},
-  url = {http://arxiv.org/abs/1509.06461},
-  year = 2015
-}
+# Double DQN
+python main.py --env AlienNoFrameskip-v4 --algorithm ddqn --train --log_interval 100 --save_weight_interval 1000
 ```
 
-## Author
-Jihoon Kim ([@jihoonerd](https://github.com/jihoonerd))
+#### 步骤 5.2：训练 Space Invaders
+
+```bash
+# DQN
+python main.py --env SpaceInvadersNoFrameskip-v4 --algorithm dqn --train --log_interval 100 --save_weight_interval 1000
+
+# Double DQN
+python main.py --env SpaceInvadersNoFrameskip-v4 --algorithm ddqn --train --log_interval 100 --save_weight_interval 1000
+```
+
+#### 步骤 5.3：训练 Time Pilot
+
+```bash
+# DQN
+python main.py --env TimePilotNoFrameskip-v4 --algorithm dqn --train --log_interval 100 --save_weight_interval 1000
+
+# Double DQN
+python main.py --env TimePilotNoFrameskip-v4 --algorithm ddqn --train --log_interval 100 --save_weight_interval 1000
+```
+
+#### 步骤 5.4：训练 Zaxxon
+
+```bash
+# DQN
+python main.py --env ZaxxonNoFrameskip-v4 --algorithm dqn --train --log_interval 100 --save_weight_interval 1000
+
+# Double DQN
+python main.py --env ZaxxonNoFrameskip-v4 --algorithm ddqn --train --log_interval 100 --save_weight_interval 1000
+```
+
+#### 步骤 5.5：训练 Wizard of Wor
+
+```bash
+# DQN
+python main.py --env WizardOfWorNoFrameskip-v4 --algorithm dqn --train --log_interval 100 --save_weight_interval 1000
+
+# Double DQN
+python main.py --env WizardOfWorNoFrameskip-v4 --algorithm ddqn --train --log_interval 100 --save_weight_interval 1000
+```
+
+#### 步骤 5.6：训练 Asterix
+
+```bash
+# DQN
+python main.py --env AsterixNoFrameskip-v4 --algorithm dqn --train --log_interval 100 --save_weight_interval 1000
+
+# Double DQN
+python main.py --env AsterixNoFrameskip-v4 --algorithm ddqn --train --log_interval 100 --save_weight_interval 1000
+```
+
+---
+
+### ⏱️ 预计训练时间
+
+| 项目 | 时间（RTX 3090） |
+|------|-----------------|
+| 每个实验 | 约 10-20 小时 |
+| 全部12个实验 | 约 5-10 天 |
+
+---
+
+## 6. 生成图3
+
+> 🎯 **目标**：训练完成后，生成论文图3的复现图
+
+### 步骤 6.1：查看 TensorBoard（实时监控）
+
+```bash
+tensorboard --logdir=./log/ --host 0.0.0.0 --port 6006
+```
+
+访问：http://localhost:6006/
+
+### 步骤 6.2：生成图3
+
+```bash
+python plot_figure3.py
+```
+
+输出文件：`./figure3_reproduction.png`
+
+---
+
+## 7. 常见问题
+
+### ❌ ROM is missing
+
+```bash
+pip install autorom[accept-rom-license] -i https://pypi.tuna.tsinghua.edu.cn/simple
+AutoROM --accept-license
+python -m atari_py.import_roms /root/miniconda3/envs/deep/lib/python3.8/site-packages/AutoROM/roms
+```
+
+### ❌ DNN library is not found
+
+```bash
+pip install nvidia-cudnn-cu11==8.6.0.163 -i https://pypi.tuna.tsinghua.edu.cn/simple
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/root/miniconda3/envs/deep/lib/python3.8/site-packages/nvidia/cudnn/lib:/root/miniconda3/envs/deep/lib/python3.8/site-packages/nvidia/cublas/lib
+```
+
+---
+
+## 📚 参考
+
+- 论文：[arXiv:1509.06461](https://arxiv.org/abs/1509.06461)
+- 项目文件：
+  - `main.py` - 训练入口，支持 `--algorithm dqn/ddqn`
+  - `reproduce_figure3.sh` - 一键复现脚本
+  - `plot_figure3.py` - 绘制图3
